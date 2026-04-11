@@ -146,8 +146,6 @@ function App() {
   const [showAdd, setShowAdd]       = useState(false);
   const [editId, setEditId]         = useState(null);
   const [form, setForm]             = useState({ title:"", notes:"", deadline:"", priority:"medium", projectId:"" });
-  const [digest, setDigest]         = useState(null);
-  const [digestLoading, setDL]      = useState(false);
   const [tab, setTab]               = useState("open");
   const [search, setSearch]         = useState("");
   const [inlineEditId, setInlineEditId]       = useState(null);
@@ -407,32 +405,6 @@ function App() {
   const openCount   = tasks.filter(t => !t.done).length;
   const urgentCount = tasks.filter(t => !t.done && t.deadline && deadlineInfo(t.deadline)?.urgent).length;
 
-  const runDigest = async () => {
-    setDL(true); setDigest(null);
-    const open = tasks.filter(t => !t.done);
-    const summary = orderedProjects.map(p => {
-      const pts = open.filter(t => t.projectId === p.id);
-      if (!pts.length) return null;
-      return `**${p.label}** (${pts.length} open)\n` + pts.map(t => {
-        const dl = t.deadline ? deadlineInfo(t.deadline) : null;
-        return `- [${t.priority.toUpperCase()}] ${t.title}${dl ? ` (${dl.label})` : ""}`;
-      }).join("\n");
-    }).filter(Boolean).join("\n\n");
-    if (!summary) { setDigest("🎉 No open tasks. Everything is done."); setDL(false); return; }
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:1000,
-          messages:[{ role:"user", content:`You are a sharp executive assistant giving a crisp daily briefing. Here are the open tasks:\n\n${summary}\n\nGive a concise summary: start with what's most urgent (overdue/due soon), then flag any high-priority items, then give a quick project-by-project rundown. Be direct and brief — this is a scan, not a report. Use plain text, no markdown headers, keep it under 200 words.` }]
-        })
-      });
-      const data = await res.json();
-      setDigest(data.content?.[0]?.text || "No response.");
-    } catch { setDigest("Couldn't reach AI."); }
-    setDL(false);
-  };
-
   const syncLabel = { loading:"⟳ connecting", saving:"⟳ saving", ok:"✓ synced", error:"✕ sync error" };
   const syncColor = { loading:"#AAA", saving:"#B06000", ok:"#2A7A4A", error:"#CC2200" };
 
@@ -462,10 +434,6 @@ function App() {
           <span style={{ fontSize:11, fontFamily:"Arial, sans-serif", color:syncColor[syncStatus], flexShrink:0 }}>{syncLabel[syncStatus]}</span>
         </div>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <button onClick={runDigest} disabled={digestLoading}
-            style={{ background:"#F0F0EC", border:"1px solid #DDDDD8", borderRadius:6, padding:"6px 12px", color:"#555", fontSize:12, cursor:"pointer", fontFamily:"Arial, sans-serif", letterSpacing:1 }}>
-            {digestLoading ? "···" : "⚡ DIGEST"}
-          </button>
           <button onClick={() => openAdd()}
             style={{ background:"#2563EB", border:"none", borderRadius:6, padding:"7px 15px", color:"#fff", fontSize:13, cursor:"pointer", fontWeight:500 }}>
             + Add
@@ -523,14 +491,6 @@ function App() {
         <div className="main-pad" style={{ flex:1, overflowY:"auto", padding:"18px 22px", background:"#F5F5F3" }}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
             style={{ width:"100%", maxWidth:280, background:"#FFFFFF", border:"1px solid #DDDDD8", borderRadius:6, padding:"8px 12px", color:"#1A1A1A", fontSize:14, marginBottom:18, display:"block" }} />
-
-          {digest && (
-            <div style={{ background:"#EEF4FF", border:"1px solid #C0D4FF", borderRadius:8, padding:"14px 16px", marginBottom:18, position:"relative" }}>
-              <div style={{ fontSize:10, fontFamily:"Arial, sans-serif", color:"#2563EB", letterSpacing:2, marginBottom:8 }}>⚡ DAILY DIGEST</div>
-              <div style={{ fontSize:14, color:"#334", lineHeight:1.75, whiteSpace:"pre-wrap" }}>{digest}</div>
-              <button onClick={()=>setDigest(null)} style={{ position:"absolute", top:10, right:12, background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:20 }}>×</button>
-            </div>
-          )}
 
           {Object.keys(grouped).length === 0 && (
             <div style={{ textAlign:"center", paddingTop:60, color:"#CCC", fontFamily:"Arial, sans-serif", fontSize:12, letterSpacing:2 }}>
