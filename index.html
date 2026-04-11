@@ -18,6 +18,8 @@
   .task-row > * { transition: background 0.1s; }
   .task-row:hover > * { background: #ECEAE6 !important; }
   .task-row:hover .task-actions { opacity: 1 !important; }
+  .task-row.selected > * { background: #EBF0FF !important; }
+  .task-row.selected .task-actions { opacity: 1 !important; }
   .proj-tab { transition: background 0.1s; cursor: pointer; user-select: none; -webkit-user-select: none; }
   .proj-tab:hover { background: #ECEAE6 !important; }
   input:focus, textarea:focus, select:focus { border-color: #2563EB !important; outline: none; }
@@ -102,6 +104,7 @@ function App() {
   const [showCmdK, setShowCmdK]       = useState(false);
   const [cmdKQuery, setCmdKQuery]     = useState("");
   const [cmdKIdx, setCmdKIdx]         = useState(0);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showNewProj, setShowNewProj] = useState(false);
   const [newProjName, setNewProjName] = useState("");
   const [newProjColor, setNewProjColor] = useState("#2563EB");
@@ -143,6 +146,29 @@ function App() {
         setShowCmdK(false); setShowAdd(false); setShowShortcuts(false);
         setNewProjName(""); setNewProjColor("#2563EB");
         setShowNewProj(true);
+      }
+      // ArrowDown — select next task (or first)
+      if (e.key === "ArrowDown" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
+        e.preventDefault();
+        setSelectedTaskId(cur => {
+          if (!flatSortedTasks.length) return null;
+          const idx = flatSortedTasks.findIndex(t => t.id === cur);
+          return flatSortedTasks[Math.min(idx + 1, flatSortedTasks.length - 1)].id;
+        });
+      }
+      // ArrowUp — select previous task
+      if (e.key === "ArrowUp" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
+        e.preventDefault();
+        setSelectedTaskId(cur => {
+          if (!flatSortedTasks.length) return null;
+          const idx = flatSortedTasks.findIndex(t => t.id === cur);
+          return idx <= 0 ? flatSortedTasks[0].id : flatSortedTasks[idx - 1].id;
+        });
+      }
+      // Enter — open edit for selected task
+      if (e.key === "Enter" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && selectedTaskId) {
+        const task = flatSortedTasks.find(t => t.id === selectedTaskId);
+        if (task) openEdit(task);
       }
       // Tab — toggle open/done (only when not typing)
       if (e.key === "Tab" && !typing && !e.ctrlKey && !e.metaKey) {
@@ -245,6 +271,21 @@ function App() {
         if (items.length) acc[p.id] = items;
         return acc;
       }, {});
+
+  const sortFn = (a,b) => {
+    const pri = {high:0,medium:1,low:2};
+    if (!a.deadline && !b.deadline) return pri[a.priority]-pri[b.priority];
+    if (!a.deadline) return 1; if (!b.deadline) return -1;
+    return new Date(a.deadline)-new Date(b.deadline);
+  };
+  const flatSortedTasks = Object.values(grouped).flatMap(items => [...items].sort(sortFn));
+
+  useEffect(() => { setSelectedTaskId(null); }, [activeProject, tab]);
+  useEffect(() => {
+    if (selectedTaskId) {
+      document.getElementById(`task-${selectedTaskId}`)?.scrollIntoView({ block:"nearest", behavior:"smooth" });
+    }
+  }, [selectedTaskId]);
 
   const openCount   = tasks.filter(t => !t.done).length;
   const urgentCount = tasks.filter(t => !t.done && t.deadline && deadlineInfo(t.deadline)?.urgent).length;
@@ -454,14 +495,14 @@ function App() {
                   {sorted.map(task => {
                     const dl = task.deadline ? deadlineInfo(task.deadline) : null;
                     return (
-                      <div key={task.id} className="task-row" style={{ display:"contents" }}>
+                      <div key={task.id} className={`task-row${selectedTaskId===task.id?" selected":""}`} style={{ display:"contents" }} onClick={()=>setSelectedTaskId(task.id)}>
                         <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center" }}>
-                          <div onClick={()=>updateTask(task.id,{done:!task.done})}
+                          <div onClick={e=>{e.stopPropagation();updateTask(task.id,{done:!task.done})}}
                             style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
                             {task.done && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
                           </div>
                         </div>
-                        <div style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
+                        <div id={`task-${task.id}`} style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
                           {inlineEditId === task.id ? (
                             <input autoFocus value={inlineEditTitle}
                               onChange={e => setInlineEditTitle(e.target.value)}
@@ -599,6 +640,8 @@ function App() {
               ["P",           "New project"],
               ["Tab",         "Toggle Open / Done"],
               ["?",           "Show this help"],
+              ["↓ / ↑",       "Select task"],
+              ["↵",           "Edit selected task"],
               ["Ctrl ↵",      "Save task / confirm"],
               ["Esc",         "Close any panel"],
             ].map(([key, label]) => (
