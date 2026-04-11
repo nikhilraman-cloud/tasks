@@ -566,7 +566,7 @@ function App() {
         </div>
 
         {/* Main */}
-        <div className="main-pad" style={{ flex:1, overflowY:"auto", overflowX: isMobile ? "hidden" : "auto", padding: isMobile ? "18px 22px 80vh" : "18px 22px", background:"#F5F5F3" }}>
+        <div className="main-pad" style={{ flex:1, overflowY:"auto", overflowX: isMobile ? "hidden" : "auto", padding:"18px 22px", background:"#F5F5F3" }}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
             style={{ width:"100%", maxWidth:280, background:"#FFFFFF", border:"1px solid #DDDDD8", borderRadius:6, padding:"8px 12px", color:"#1A1A1A", fontSize:14, marginBottom:18, display:"block" }} />
 
@@ -731,6 +731,9 @@ function App() {
               </div>
             );
           })}
+
+          {/* Scroll breathing room on mobile — lets last project reach the top */}
+          {isMobile && <div style={{ height:"80vh" }} />}
         </div>
       </div>
 
