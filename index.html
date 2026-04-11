@@ -110,6 +110,9 @@ function App() {
   const [newProjColor, setNewProjColor] = useState("#2563EB");
   const [showShortcuts, setShowShortcuts] = useState(false);
   const initialized                 = useRef(false);
+  const flatRef                     = useRef([]);
+  const selectedTaskRef             = useRef(null);
+  const openEditRef                 = useRef(null);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -150,25 +153,30 @@ function App() {
       // ArrowDown — select next task (or first)
       if (e.key === "ArrowDown" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
         e.preventDefault();
+        const tasks = flatRef.current;
         setSelectedTaskId(cur => {
-          if (!flatSortedTasks.length) return null;
-          const idx = flatSortedTasks.findIndex(t => t.id === cur);
-          return flatSortedTasks[Math.min(idx + 1, flatSortedTasks.length - 1)].id;
+          if (!tasks.length) return null;
+          const idx = tasks.findIndex(t => t.id === cur);
+          return tasks[Math.min(idx + 1, tasks.length - 1)].id;
         });
       }
       // ArrowUp — select previous task
       if (e.key === "ArrowUp" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
         e.preventDefault();
+        const tasks = flatRef.current;
         setSelectedTaskId(cur => {
-          if (!flatSortedTasks.length) return null;
-          const idx = flatSortedTasks.findIndex(t => t.id === cur);
-          return idx <= 0 ? flatSortedTasks[0].id : flatSortedTasks[idx - 1].id;
+          if (!tasks.length) return null;
+          const idx = tasks.findIndex(t => t.id === cur);
+          return idx <= 0 ? tasks[0].id : tasks[idx - 1].id;
         });
       }
       // Enter — open edit for selected task
-      if (e.key === "Enter" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && selectedTaskId) {
-        const task = flatSortedTasks.find(t => t.id === selectedTaskId);
-        if (task) openEdit(task);
+      if (e.key === "Enter" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
+        const curId = selectedTaskRef.current;
+        if (curId) {
+          const task = flatRef.current.find(t => t.id === curId);
+          if (task) openEditRef.current(task);
+        }
       }
       // Tab — toggle open/done (only when not typing)
       if (e.key === "Tab" && !typing && !e.ctrlKey && !e.metaKey) {
@@ -219,6 +227,7 @@ function App() {
     setForm({ title:task.title, notes:task.notes||"", deadline:task.deadline||"", priority:task.priority, projectId:task.projectId });
     setEditId(task.id); setShowAdd(true);
   };
+  openEditRef.current = openEdit;
 
   const saveForm = () => {
     if (!form.title.trim()) return;
@@ -279,6 +288,8 @@ function App() {
     return new Date(a.deadline)-new Date(b.deadline);
   };
   const flatSortedTasks = Object.values(grouped).flatMap(items => [...items].sort(sortFn));
+  flatRef.current = flatSortedTasks;
+  selectedTaskRef.current = selectedTaskId;
 
   useEffect(() => { setSelectedTaskId(null); }, [activeProject, tab]);
   useEffect(() => {
@@ -550,7 +561,7 @@ function App() {
         const allOpts = [{ id: null, label: "All Projects", color: "#2563EB", parentId: null }, ...orderedProjects];
         const filtered = allOpts.filter(p => p.label.toLowerCase().includes(cmdKQuery.toLowerCase()));
         const safeIdx = Math.min(cmdKIdx, filtered.length - 1);
-        const choose = (id) => { setActive(id); setShowCmdK(false); };
+        const choose = (id) => { setActive(id); setShowCmdK(false); setSelectedTaskId(null); };
         const onKeyDown = (e) => {
           if (e.key === "ArrowDown") { e.preventDefault(); setCmdKIdx(i => Math.min(i + 1, filtered.length - 1)); }
           if (e.key === "ArrowUp")   { e.preventDefault(); setCmdKIdx(i => Math.max(i - 1, 0)); }
