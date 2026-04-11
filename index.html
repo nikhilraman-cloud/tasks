@@ -51,6 +51,8 @@
     /* Prevent scroll chaining (rubber-band pulling outer viewport) */
     .main-pad { overscroll-behavior: contain; }
     .sidebar  { overscroll-behavior: contain; }
+    /* Disable native touch handling so JS preventDefault() is always respected */
+    .main-pad, .sidebar { touch-action: none; }
     /* Always show edit/delete buttons on touch devices */
     .task-actions { opacity: 1 !important; }
   }
@@ -195,12 +197,13 @@ function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // Axis-lock: once a touch gesture commits to one direction, block the other axis.
-  // Uses manual scroll management so we can call preventDefault() and drive
-  // scrollTop/scrollLeft ourselves — the only reliable way to do this on iOS PWA.
+  // Axis-lock — mirrors UIScrollView.directionalLockEnabled on iOS:
+  // suppress ALL native scrolling from the first touchmove and drive it manually,
+  // so the browser never gets a chance to go diagonal. Small dead zone before
+  // axis commits, then snaps cleanly to one direction for the rest of the gesture.
   useEffect(() => {
     let startX, startY, axis, scrollEl, startScrollTop, startScrollLeft;
-    const THRESHOLD = 20;
+    const THRESHOLD = 10;
 
     const getScrollParent = (el) => {
       while (el && el !== document.documentElement) {
@@ -220,14 +223,17 @@ function App() {
     };
 
     const onMove = (e) => {
+      // Block native scroll immediately — we drive everything manually.
+      // This is the key: calling preventDefault before the browser takes over.
+      e.preventDefault();
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
+      // Dead zone: don't scroll at all until direction is clear
       if (!axis) {
         if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
         axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
       }
-      e.preventDefault();
       if (axis === 'y') scrollEl.scrollTop  = startScrollTop  - dy;
       else              scrollEl.scrollLeft = startScrollLeft - dx;
     };
