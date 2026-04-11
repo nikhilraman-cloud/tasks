@@ -360,7 +360,7 @@ function App() {
                             {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
                           </div>
                           <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"9px 0 9px 12px", display:"flex", alignItems:"center" }}>
-                            {dl && !task.done && <span style={{ fontSize:14, color:dl.color, whiteSpace:"nowrap" }}>{dl.label}</span>}
+                            {dl && !task.done && <span style={{ fontSize:14, color:"#1A1A1A", whiteSpace:"nowrap" }}>{dl.label}</span>}
                           </div>
                           <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, transition:"opacity 0.1s", alignItems:"center", paddingLeft:10 }}>
                             <button onClick={()=>openEdit(task)} style={{ background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✎</button>
@@ -420,7 +420,7 @@ function App() {
                           {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
                         </div>
                         <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"9px 0 9px 12px", display:"flex", alignItems:"center" }}>
-                          {dl && !task.done && <span style={{ fontSize:14, color:dl.color, whiteSpace:"nowrap" }}>{dl.label}</span>}
+                          {dl && !task.done && <span style={{ fontSize:14, color:"#1A1A1A", whiteSpace:"nowrap" }}>{dl.label}</span>}
                         </div>
                         <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, transition:"opacity 0.1s", alignItems:"center", paddingLeft:10 }}>
                           <button onClick={()=>openEdit(task)} style={{ background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✎</button>
