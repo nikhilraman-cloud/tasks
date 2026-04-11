@@ -48,10 +48,9 @@
       background: rgba(0,0,0,0.25);
       z-index: 99;
     }
-    /* Axis-lock scrolling — once you start in one direction, stay there */
-    html, body, #root { overflow-x: hidden; }
-    .main-pad { touch-action: pan-y; overflow-x: hidden; }
-    .sidebar  { touch-action: pan-y; }
+    /* Prevent scroll chaining (rubber-band pulling outer viewport) */
+    .main-pad { overscroll-behavior: contain; }
+    .sidebar  { overscroll-behavior: contain; }
     /* Always show edit/delete buttons on touch devices */
     .task-actions { opacity: 1 !important; }
   }
@@ -190,6 +189,41 @@ function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // Axis-lock touch scrolling on mobile: detect initial swipe direction,
+  // then suppress the cross-axis component so you never scroll diagonally
+  useEffect(() => {
+    if (!isMobile) return;
+    let startX, startY, axis;
+    const THRESHOLD = 8; // px of movement before locking an axis
+    const onStart = (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      axis = null;
+    };
+    const onMove = (e) => {
+      if (!axis) {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > THRESHOLD || dy > THRESHOLD) {
+          axis = dx > dy ? "x" : "y";
+        } else return;
+      }
+      // Once locked, prevent cross-axis scrolling by stopping the event
+      // when the opposite axis would dominate
+      const dx = Math.abs(e.touches[0].clientX - startX);
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if ((axis === "x" && dy > dx) || (axis === "y" && dx > dy)) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     const onKey = (e) => {
