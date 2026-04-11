@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chrono-node@2/dist/chrono.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body, #root { height: 100%; background: #F5F5F3; color: #1A1A1A; font-family: Arial, sans-serif; -webkit-font-smoothing: antialiased; }
@@ -87,17 +88,28 @@ function deadlineInfo(dateStr) {
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-// Parse "mm/dd/yy" or "mm/dd/yyyy" → "YYYY-MM-DD", or "" → null (clears deadline)
+// Parse natural language or "mm/dd/yy" → { ok, iso } where iso is "YYYY-MM-DD" or null (clear)
 function parseDateInput(str) {
   const s = str.trim();
   if (!s) return { ok: true, iso: null }; // empty = clear deadline
+  // mm/dd/yy(yy) numeric shorthand
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (!m) return { ok: false };
-  let [, mo, dy, yr] = m;
-  if (yr.length === 2) yr = "20" + yr;
-  const iso = `${yr}-${mo.padStart(2,"0")}-${dy.padStart(2,"0")}`;
-  if (isNaN(new Date(iso + "T00:00:00").getTime())) return { ok: false };
-  return { ok: true, iso };
+  if (m) {
+    let [, mo, dy, yr] = m;
+    if (yr.length === 2) yr = "20" + yr;
+    const iso = `${yr}-${mo.padStart(2,"0")}-${dy.padStart(2,"0")}`;
+    if (isNaN(new Date(iso + "T00:00:00").getTime())) return { ok: false };
+    return { ok: true, iso };
+  }
+  // Natural language via chrono-node
+  if (typeof chrono !== "undefined") {
+    const d = chrono.parseDate(s, new Date(), { forwardDate: true });
+    if (d) {
+      const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+      return { ok: true, iso };
+    }
+  }
+  return { ok: false };
 }
 
 function App() {
@@ -643,7 +655,11 @@ function App() {
           ? (() => { const d = new Date(curTask.deadline + "T00:00:00");
               return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}/${String(d.getFullYear()).slice(2)}`; })()
           : "";
-        const isValid = datePaletteVal === "" || parseDateInput(datePaletteVal).ok;
+        const parsed = datePaletteVal.trim() ? parseDateInput(datePaletteVal) : null;
+        const isValid = !datePaletteVal.trim() || (parsed && parsed.ok);
+        const previewLabel = parsed?.ok && parsed.iso
+          ? deadlineInfo(parsed.iso)?.label || new Date(parsed.iso + "T00:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" })
+          : null;
         return (
           <div onClick={e => e.target === e.currentTarget && setShowDatePalette(false)}
             style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:200, paddingTop:120 }}>
@@ -656,20 +672,26 @@ function App() {
                     if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); submitDate(); }
                     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setShowDatePalette(false); }
                   }}
-                  placeholder={hint || "mm/dd/yy — leave empty to clear"}
+                  placeholder={hint || "tomorrow · in 2 weeks · mm/dd/yy"}
                   style={{ flex:1, border:"none", outline:"none", fontSize:15, color:isValid?"#1A1A1A":"#CC2200",
                     background:"transparent", fontFamily:"Arial, sans-serif" }}
                 />
                 <span style={{ fontSize:11, color:"#CCC", background:"#F5F5F3", borderRadius:4, padding:"2px 6px" }}>ESC</span>
               </div>
-              {curTask && (
-                <div style={{ padding:"10px 16px", fontSize:13, color:"#888" }}>
-                  <span style={{ fontWeight:600, color:"#1A1A1A" }}>{curTask.title}</span>
-                  {curTask.deadline && <span style={{ marginLeft:8, color:"#AAA" }}>
-                    · currently {deadlineInfo(curTask.deadline)?.label}
-                  </span>}
-                </div>
-              )}
+              <div style={{ padding:"10px 16px", fontSize:13, minHeight:38, display:"flex", alignItems:"center", gap:6 }}>
+                {previewLabel ? (
+                  <>
+                    <span style={{ color:"#2563EB", fontWeight:600 }}>→</span>
+                    <span style={{ color:"#1A1A1A" }}>{previewLabel}</span>
+                  </>
+                ) : datePaletteVal.trim() && !isValid ? (
+                  <span style={{ color:"#CC2200" }}>Can't parse that date</span>
+                ) : curTask?.deadline ? (
+                  <span style={{ color:"#AAA" }}>currently {deadlineInfo(curTask.deadline)?.label}</span>
+                ) : (
+                  <span style={{ color:"#CCC" }}>{curTask?.title}</span>
+                )}
+              </div>
               <div style={{ padding:"8px 16px", borderTop:"1px solid #EEEEE8", display:"flex", gap:16, fontSize:11, color:"#CCC" }}>
                 <span>↵ save</span><span>empty = clear deadline</span><span>ESC cancel</span>
               </div>
