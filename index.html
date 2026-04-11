@@ -168,6 +168,8 @@ function App() {
   const flatRef                     = useRef([]);
   const selectedTaskRef             = useRef(null);
   const openEditRef                 = useRef(null);
+  const sidebarOpenRef              = useRef(false);
+  useEffect(() => { sidebarOpenRef.current = sidebarOpen; }, [sidebarOpen]);
 
   const loadData = useCallback(async (isInitial = false) => {
     try {
@@ -204,8 +206,12 @@ function App() {
     let startX, startY, axis, scrollEl, startScrollTop, startScrollLeft;
     let lastMoveTime = null, lastMoveX = 0, lastMoveY = 0, scrollVelocity = 0;
     let rafId = null;
-    const THRESHOLD = 10;
-    const FRICTION   = 0.93; // velocity multiplier per ~16ms frame — higher = longer glide
+    let isEdgeSwipe = false;
+    const THRESHOLD   = 10;
+    const EDGE_ZONE   = 30;  // px from left edge that triggers sidebar open
+    const SWIPE_OPEN  = 50;  // px rightward to open sidebar
+    const SWIPE_CLOSE = 60;  // px leftward (total) to close sidebar
+    const FRICTION    = 0.93;
 
     const getScrollParent = (el) => {
       while (el && el !== document.documentElement) {
@@ -221,29 +227,42 @@ function App() {
       const t = e.touches[0];
       startX = t.clientX; startY = t.clientY; axis = null;
       lastMoveTime = null; scrollVelocity = 0;
+      // Detect left-edge swipe to open sidebar
+      isEdgeSwipe = t.clientX <= EDGE_ZONE && !sidebarOpenRef.current;
       scrollEl = getScrollParent(e.target);
       startScrollTop  = scrollEl.scrollTop;
       startScrollLeft = scrollEl.scrollLeft;
     };
 
     const onMove = (e) => {
-      e.preventDefault();
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
+
+      // Left-edge swipe: open sidebar when swiped far enough rightward
+      if (isEdgeSwipe) {
+        e.preventDefault();
+        if (dx > SWIPE_OPEN && Math.abs(dy) < 60) {
+          setSidebarOpen(true);
+          isEdgeSwipe = false;
+        }
+        return;
+      }
+
+      // Regular axis-lock + scroll
+      e.preventDefault();
       if (!axis) {
         if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
         axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
         lastMoveX = t.clientX; lastMoveY = t.clientY; lastMoveTime = Date.now();
       }
-      // Track velocity with exponential moving average for smooth momentum
       const now = Date.now();
       if (lastMoveTime) {
         const dt = now - lastMoveTime;
         if (dt > 0 && dt < 100) {
           const cur  = axis === 'y' ? t.clientY  : t.clientX;
           const last = axis === 'y' ? lastMoveY  : lastMoveX;
-          const inst = -(cur - last) / dt; // px/ms, positive = scrolling forward
+          const inst = -(cur - last) / dt;
           scrollVelocity = scrollVelocity * 0.6 + inst * 0.4;
         }
       }
@@ -253,6 +272,12 @@ function App() {
     };
 
     const onEnd = () => {
+      // Swipe left to close sidebar
+      if (sidebarOpenRef.current && axis === 'x') {
+        const totalDx = lastMoveX - startX;
+        if (totalDx < -SWIPE_CLOSE) { setSidebarOpen(false); return; }
+      }
+      // Momentum scroll
       if (!axis || Math.abs(scrollVelocity) < 0.1) return;
       let vel = scrollVelocity;
       const step = () => {
