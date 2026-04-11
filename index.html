@@ -197,13 +197,15 @@ function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // Axis-lock — mirrors UIScrollView.directionalLockEnabled on iOS:
-  // suppress ALL native scrolling from the first touchmove and drive it manually,
-  // so the browser never gets a chance to go diagonal. Small dead zone before
-  // axis commits, then snaps cleanly to one direction for the rest of the gesture.
+  // Axis-lock with momentum scrolling — mirrors UIScrollView.directionalLockEnabled + inertia:
+  // suppress ALL native scrolling, drive manually with axis-lock, then on touchend
+  // continue the scroll with a decelerating animation so lifting your finger feels natural.
   useEffect(() => {
     let startX, startY, axis, scrollEl, startScrollTop, startScrollLeft;
+    let lastMoveTime = null, lastMoveX = 0, lastMoveY = 0, scrollVelocity = 0;
+    let rafId = null;
     const THRESHOLD = 10;
+    const FRICTION   = 0.93; // velocity multiplier per ~16ms frame — higher = longer glide
 
     const getScrollParent = (el) => {
       while (el && el !== document.documentElement) {
@@ -215,34 +217,64 @@ function App() {
     };
 
     const onStart = (e) => {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
       const t = e.touches[0];
       startX = t.clientX; startY = t.clientY; axis = null;
+      lastMoveTime = null; scrollVelocity = 0;
       scrollEl = getScrollParent(e.target);
       startScrollTop  = scrollEl.scrollTop;
       startScrollLeft = scrollEl.scrollLeft;
     };
 
     const onMove = (e) => {
-      // Block native scroll immediately — we drive everything manually.
-      // This is the key: calling preventDefault before the browser takes over.
       e.preventDefault();
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
-      // Dead zone: don't scroll at all until direction is clear
       if (!axis) {
         if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
         axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        lastMoveX = t.clientX; lastMoveY = t.clientY; lastMoveTime = Date.now();
       }
+      // Track velocity with exponential moving average for smooth momentum
+      const now = Date.now();
+      if (lastMoveTime) {
+        const dt = now - lastMoveTime;
+        if (dt > 0 && dt < 100) {
+          const cur  = axis === 'y' ? t.clientY  : t.clientX;
+          const last = axis === 'y' ? lastMoveY  : lastMoveX;
+          const inst = -(cur - last) / dt; // px/ms, positive = scrolling forward
+          scrollVelocity = scrollVelocity * 0.6 + inst * 0.4;
+        }
+      }
+      lastMoveTime = now; lastMoveX = t.clientX; lastMoveY = t.clientY;
       if (axis === 'y') scrollEl.scrollTop  = startScrollTop  - dy;
       else              scrollEl.scrollLeft = startScrollLeft - dx;
     };
 
-    document.addEventListener('touchstart', onStart, { passive: true });
-    document.addEventListener('touchmove',  onMove,  { passive: false });
+    const onEnd = () => {
+      if (!axis || Math.abs(scrollVelocity) < 0.1) return;
+      let vel = scrollVelocity;
+      const step = () => {
+        vel *= FRICTION;
+        if (Math.abs(vel) < 0.04) { rafId = null; return; }
+        if (axis === 'y') scrollEl.scrollTop  += vel * 16;
+        else              scrollEl.scrollLeft += vel * 16;
+        rafId = requestAnimationFrame(step);
+      };
+      rafId = requestAnimationFrame(step);
+    };
+
+    document.addEventListener('touchstart',  onStart, { passive: true });
+    document.addEventListener('touchmove',   onMove,  { passive: false });
+    document.addEventListener('touchend',    onEnd,   { passive: true });
+    document.addEventListener('touchcancel', onEnd,   { passive: true });
     return () => {
-      document.removeEventListener('touchstart', onStart);
-      document.removeEventListener('touchmove',  onMove);
+      if (rafId) cancelAnimationFrame(rafId);
+      document.removeEventListener('touchstart',  onStart);
+      document.removeEventListener('touchmove',   onMove);
+      document.removeEventListener('touchend',    onEnd);
+      document.removeEventListener('touchcancel', onEnd);
     };
   }, []);
 
