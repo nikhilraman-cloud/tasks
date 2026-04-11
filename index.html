@@ -895,6 +895,20 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/tasks/sw.js', { scope: '/tasks/' });
   });
 }
+// Auto-reload when a new version is deployed to GitHub Pages.
+// Polls index.html every 30s; if the ETag or Last-Modified changes, reload.
+(function() {
+  var tag = null;
+  setInterval(function() {
+    fetch('/tasks/index.html', { method: 'HEAD', cache: 'no-store' })
+      .then(function(r) {
+        var t = r.headers.get('etag') || r.headers.get('last-modified') || '';
+        if (tag && t !== tag) window.location.reload();
+        tag = t;
+      })
+      .catch(function() {});
+  }, 30000);
+})();
 </script>
 </body>
 </html>
