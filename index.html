@@ -99,6 +99,9 @@ function App() {
   const [search, setSearch]         = useState("");
   const [inlineEditId, setInlineEditId]       = useState(null);
   const [inlineEditTitle, setInlineEditTitle] = useState("");
+  const [showCmdK, setShowCmdK]   = useState(false);
+  const [cmdKQuery, setCmdKQuery] = useState("");
+  const [cmdKIdx, setCmdKIdx]     = useState(0);
   const initialized                 = useRef(false);
 
   useEffect(() => {
@@ -114,6 +117,18 @@ function App() {
         setSyncStatus("ok");
       } catch(e) { setSyncStatus("error"); }
     })();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "k" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setShowCmdK(v => { if (!v) { setCmdKQuery(""); setCmdKIdx(0); } return !v; });
+      }
+      if (e.key === "Escape") setShowCmdK(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const flash = (s) => setSyncStatus(s);
@@ -442,6 +457,56 @@ function App() {
           })}
         </div>
       </div>
+
+      {/* Ctrl+K Command Palette */}
+      {showCmdK && (() => {
+        const allOpts = [{ id: null, label: "All Projects", color: "#2563EB", parentId: null }, ...orderedProjects];
+        const filtered = allOpts.filter(p => p.label.toLowerCase().includes(cmdKQuery.toLowerCase()));
+        const safeIdx = Math.min(cmdKIdx, filtered.length - 1);
+        const choose = (id) => { setActive(id); setShowCmdK(false); };
+        const onKeyDown = (e) => {
+          if (e.key === "ArrowDown") { e.preventDefault(); setCmdKIdx(i => Math.min(i + 1, filtered.length - 1)); }
+          if (e.key === "ArrowUp")   { e.preventDefault(); setCmdKIdx(i => Math.max(i - 1, 0)); }
+          if (e.key === "Enter" && filtered.length > 0) choose(filtered[safeIdx].id);
+          if (e.key === "Escape") setShowCmdK(false);
+        };
+        return (
+          <div onClick={e => e.target === e.currentTarget && setShowCmdK(false)}
+            style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:200, paddingTop:120 }}>
+            <div style={{ background:"#FFFFFF", borderRadius:10, width:"100%", maxWidth:420, boxShadow:"0 8px 40px rgba(0,0,0,0.18)", overflow:"hidden" }}>
+              <div style={{ display:"flex", alignItems:"center", padding:"12px 16px", borderBottom:"1px solid #EEEEE8", gap:10 }}>
+                <span style={{ fontSize:13, color:"#AAA" }}>⌘</span>
+                <input autoFocus value={cmdKQuery}
+                  onChange={e => { setCmdKQuery(e.target.value); setCmdKIdx(0); }}
+                  onKeyDown={onKeyDown}
+                  placeholder="Go to project…"
+                  style={{ flex:1, border:"none", outline:"none", fontSize:15, color:"#1A1A1A", background:"transparent", fontFamily:"Arial, sans-serif" }}
+                />
+                <span style={{ fontSize:11, color:"#CCC", background:"#F5F5F3", borderRadius:4, padding:"2px 6px" }}>ESC</span>
+              </div>
+              <div style={{ maxHeight:280, overflowY:"auto" }}>
+                {filtered.length === 0 && (
+                  <div style={{ padding:"16px", fontSize:13, color:"#CCC", textAlign:"center" }}>No projects found</div>
+                )}
+                {filtered.map((p, i) => (
+                  <div key={p.id ?? "__all__"} onClick={() => choose(p.id)}
+                    style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", cursor:"pointer",
+                      background: i === safeIdx ? "#F0F4FF" : "transparent",
+                      borderLeft: i === safeIdx ? "2px solid #2563EB" : "2px solid transparent" }}
+                    onMouseEnter={() => setCmdKIdx(i)}>
+                    <div style={{ width:8, height:8, borderRadius:"50%", background:p.color, flexShrink:0 }} />
+                    <span style={{ fontSize:14, color:"#1A1A1A" }}>{p.label}</span>
+                    {p.parentId && <span style={{ fontSize:11, color:"#BBB", marginLeft:"auto" }}>sub-project</span>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding:"8px 16px", borderTop:"1px solid #EEEEE8", display:"flex", gap:16, fontSize:11, color:"#CCC" }}>
+                <span>↑↓ navigate</span><span>↵ select</span><span>ESC close</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal */}
       {showAdd && (
