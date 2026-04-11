@@ -306,8 +306,77 @@ function App() {
             </div>
           )}
 
-          {Object.entries(grouped).map(([pid, items]) => {
-            const p = proj(pid);
+          {/* ALL TASKS VIEW — single grid so deadline column aligns across all projects */}
+          {!activeProject && Object.keys(grouped).length > 0 && (
+            <div style={{ display:"grid", gridTemplateColumns:"27px auto auto 1fr", columnGap:0, rowGap:0 }}>
+              {Object.entries(grouped).map(([pid, items], idx) => {
+                const p = proj(pid);
+                const sorted = [...items].sort((a,b) => {
+                  const pri = {high:0,medium:1,low:2};
+                  if (!a.deadline && !b.deadline) return pri[a.priority]-pri[b.priority];
+                  if (!a.deadline) return 1; if (!b.deadline) return -1;
+                  return new Date(a.deadline)-new Date(b.deadline);
+                });
+                return (
+                  <React.Fragment key={pid}>
+                    <div style={{ gridColumn:"1 / -1", display:"flex", alignItems:"center", gap:8, padding: idx > 0 ? "20px 0 8px" : "0 0 8px" }}>
+                      <div style={{ width:7, height:7, borderRadius:"50%", background:p?.color }} />
+                      <span style={{ fontSize:12, fontFamily:"Arial, sans-serif", color:"#555", letterSpacing:1.5, fontWeight:700 }}>{p?.label?.toUpperCase()}</span>
+                      <div style={{ flex:1, height:1, background:"#E8E8E4" }} />
+                      <button onClick={()=>openAdd(pid)} style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:20, lineHeight:1, padding:"0 4px" }}
+                        onMouseEnter={e=>e.target.style.color="#888"} onMouseLeave={e=>e.target.style.color="#CCC"}>+</button>
+                    </div>
+                    <div style={{ borderBottom:"1px solid #DDDDD8", padding:"0 0 6px" }} />
+                    <div style={{ padding:"0 20px 6px 0", fontSize:14, color:"#1A1A1A", fontWeight:600, borderBottom:"1px solid #DDDDD8" }}>Task</div>
+                    <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"0 0 6px 12px", fontSize:14, color:"#1A1A1A", fontWeight:600, borderBottom:"1px solid #DDDDD8" }}>Deadline</div>
+                    <div style={{ borderBottom:"1px solid #DDDDD8" }} />
+                    {sorted.map(task => {
+                      const dl = task.deadline ? deadlineInfo(task.deadline) : null;
+                      return (
+                        <div key={task.id} className="task-row" style={{ display:"contents" }}>
+                          <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center" }}>
+                            <div onClick={()=>updateTask(task.id,{done:!task.done})}
+                              style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
+                              {task.done && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
+                            </div>
+                          </div>
+                          <div style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
+                            {inlineEditId === task.id ? (
+                              <input autoFocus value={inlineEditTitle}
+                                onChange={e => setInlineEditTitle(e.target.value)}
+                                onBlur={() => saveInlineEdit(task.id)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter") { e.preventDefault(); saveInlineEdit(task.id); }
+                                  if (e.key === "Escape") setInlineEditId(null);
+                                }}
+                                style={{ fontSize:14, color:"#1A1A1A", background:"transparent", border:"none", borderBottom:"1px solid #2563EB", outline:"none", padding:0, fontFamily:"Arial, sans-serif" }}
+                              />
+                            ) : (
+                              <span
+                                onClick={() => { if (!task.done) { setInlineEditId(task.id); setInlineEditTitle(task.title); } }}
+                                style={{ fontSize:14, color:task.done?"#BBBBBA":"#1A1A1A", textDecoration:task.done?"line-through":"none", cursor:task.done?"default":"text", whiteSpace:"nowrap" }}
+                              >{task.title}</span>
+                            )}
+                            {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
+                          </div>
+                          <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"9px 0 9px 12px", display:"flex", alignItems:"center" }}>
+                            {dl && !task.done && <span style={{ fontSize:14, color:dl.color, whiteSpace:"nowrap" }}>{dl.label}</span>}
+                          </div>
+                          <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, transition:"opacity 0.1s", alignItems:"center", paddingLeft:10 }}>
+                            <button onClick={()=>openEdit(task)} style={{ background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✎</button>
+                            <button onClick={()=>removeTask(task.id)} style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✕</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+
+          {/* INDIVIDUAL PROJECT VIEW — per-project grid, deadline flush with cushion */}
+          {activeProject && Object.entries(grouped).map(([pid, items]) => {
             const sorted = [...items].sort((a,b) => {
               const pri = {high:0,medium:1,low:2};
               if (!a.deadline && !b.deadline) return pri[a.priority]-pri[b.priority];
@@ -316,19 +385,10 @@ function App() {
             });
             return (
               <div key={pid} style={{ marginBottom:28 }}>
-                {!activeProject && (
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                    <div style={{ width:7, height:7, borderRadius:"50%", background:p?.color }} />
-                    <span style={{ fontSize:12, fontFamily:"Arial, sans-serif", color:"#555", letterSpacing:1.5, fontWeight:700 }}>{p?.label?.toUpperCase()}</span>
-                    <div style={{ flex:1, height:1, background:"#E8E8E4" }} />
-                    <button onClick={()=>openAdd(pid)} style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:20, lineHeight:1, padding:"0 4px" }}
-                      onMouseEnter={e=>e.target.style.color="#888"} onMouseLeave={e=>e.target.style.color="#CCC"}>+</button>
-                  </div>
-                )}
-                <div style={{ display:"grid", gridTemplateColumns:activeProject ? "27px auto auto 1fr" : "27px 1fr auto auto", columnGap:0, rowGap:0 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"27px auto auto 1fr", columnGap:0, rowGap:0 }}>
                   <div style={{ borderBottom:"1px solid #DDDDD8", padding:"0 0 6px" }} />
-                  <div style={{ padding:"0 0 6px", fontSize:14, color:"#1A1A1A", borderBottom:"1px solid #DDDDD8" }}>Task</div>
-                  <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"0 0 6px 12px", fontSize:14, color:"#1A1A1A", borderBottom:"1px solid #DDDDD8" }}>Deadline</div>
+                  <div style={{ padding:"0 20px 6px 0", fontSize:14, color:"#1A1A1A", fontWeight:600, borderBottom:"1px solid #DDDDD8" }}>Task</div>
+                  <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"0 0 6px 12px", fontSize:14, color:"#1A1A1A", fontWeight:600, borderBottom:"1px solid #DDDDD8" }}>Deadline</div>
                   <div style={{ borderBottom:"1px solid #DDDDD8" }} />
                   {sorted.map(task => {
                     const dl = task.deadline ? deadlineInfo(task.deadline) : null;
@@ -340,7 +400,7 @@ function App() {
                             {task.done && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
                           </div>
                         </div>
-                        <div style={{ padding:"9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
+                        <div style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
                           {inlineEditId === task.id ? (
                             <input autoFocus value={inlineEditTitle}
                               onChange={e => setInlineEditTitle(e.target.value)}
@@ -370,7 +430,7 @@ function App() {
                     );
                   })}
                 </div>
-                {activeProject && tab==="open" && (
+                {tab==="open" && (
                   <button onClick={()=>openAdd(pid)} style={{ marginTop:6, background:"none", border:"1px dashed #DDD", borderRadius:5, padding:"7px 10px", color:"#CCC", fontSize:13, cursor:"pointer", width:"100%", textAlign:"left" }}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor="#AAA";e.currentTarget.style.color="#888";}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor="#DDD";e.currentTarget.style.color="#CCC";}}>
