@@ -132,16 +132,14 @@ function App() {
         setShowAdd(false); setShowNewProj(false); setShowShortcuts(false);
         setShowCmdK(v => { if (!v) { setCmdKQuery(""); setCmdKIdx(0); } return !v; });
       }
-      // Ctrl+N — new task
-      if (e.key === "n" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
-        e.preventDefault();
+      // N — new task (only when not typing)
+      if (e.key === "n" && !typing && !e.ctrlKey && !e.metaKey) {
         setShowCmdK(false); setShowNewProj(false); setShowShortcuts(false);
         setShowAdd(true); setEditId(null);
         setForm(f => ({ ...f, title:"", notes:"", deadline:"", priority:"medium" }));
       }
-      // Ctrl+Shift+N — new project
-      if (e.key === "N" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
-        e.preventDefault();
+      // P — new project (only when not typing)
+      if (e.key === "p" && !typing && !e.ctrlKey && !e.metaKey) {
         setShowCmdK(false); setShowAdd(false); setShowShortcuts(false);
         setNewProjName(""); setNewProjColor("#2563EB");
         setShowNewProj(true);
@@ -597,8 +595,8 @@ function App() {
             <div style={{ fontSize:13, fontWeight:600, color:"#1A1A1A", marginBottom:16 }}>Keyboard Shortcuts</div>
             {[
               ["Ctrl K",      "Navigate to project"],
-              ["Ctrl N",      "New task"],
-              ["Ctrl Shift N","New project"],
+              ["N",           "New task"],
+              ["P",           "New project"],
               ["Tab",         "Toggle Open / Done"],
               ["?",           "Show this help"],
               ["Ctrl ↵",      "Save task / confirm"],
