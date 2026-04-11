@@ -466,14 +466,14 @@ function App() {
                     {sorted.map(task => {
                       const dl = task.deadline ? deadlineInfo(task.deadline) : null;
                       return (
-                        <div key={task.id} className="task-row" style={{ display:"contents" }}>
+                        <div key={task.id} className={`task-row${selectedTaskId===task.id?" selected":""}`} style={{ display:"contents" }} onClick={()=>setSelectedTaskId(task.id)}>
                           <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center" }}>
-                            <div onClick={()=>updateTask(task.id,{done:!task.done})}
+                            <div onClick={e=>{e.stopPropagation();updateTask(task.id,{done:!task.done})}}
                               style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
                               {task.done && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
                             </div>
                           </div>
-                          <div style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
+                          <div id={`task-${task.id}`} style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
                             {inlineEditId === task.id ? (
                               <input autoFocus value={inlineEditTitle}
                                 onChange={e => setInlineEditTitle(e.target.value)}
