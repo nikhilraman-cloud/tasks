@@ -167,12 +167,14 @@ function App() {
       }
       // N — new task (only when not typing, no overlay open)
       if (e.key === "n" && !typing && !e.ctrlKey && !e.metaKey && !showDatePalette) {
+        e.preventDefault();
         setShowCmdK(false); setShowNewProj(false); setShowShortcuts(false);
         setShowAdd(true); setEditId(null);
         setForm(f => ({ ...f, title:"", notes:"", deadline:"", priority:"medium" }));
       }
       // P — new project (only when not typing, no overlay open)
       if (e.key === "p" && !typing && !e.ctrlKey && !e.metaKey && !showDatePalette) {
+        e.preventDefault();
         setShowCmdK(false); setShowAdd(false); setShowShortcuts(false);
         setNewProjName(""); setNewProjColor("#2563EB");
         setShowNewProj(true);
