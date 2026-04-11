@@ -186,7 +186,10 @@ function App() {
     initialized.current = true;
     loadData(true);
     const interval = setInterval(() => loadData(false), 30000);
-    return () => clearInterval(interval);
+    // Re-fetch immediately when app comes back to foreground (PWA / tab switch)
+    const onVisible = () => { if (document.visibilityState === "visible") loadData(false); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
   }, [loadData]);
 
   useEffect(() => {
