@@ -48,6 +48,12 @@
       background: rgba(0,0,0,0.25);
       z-index: 99;
     }
+    /* Axis-lock scrolling — once you start in one direction, stay there */
+    html, body, #root { overflow-x: hidden; }
+    .main-pad { touch-action: pan-y; overflow-x: hidden; }
+    .sidebar  { touch-action: pan-y; }
+    /* Always show edit/delete buttons on touch devices */
+    .task-actions { opacity: 1 !important; }
   }
 </style>
 </head>
@@ -528,7 +534,7 @@ function App() {
                       const isSel = selectedTaskId === task.id;
                       const selBg = isSel ? "#EBF0FF" : undefined;
                       return (
-                        <div key={task.id} className={`task-row${isSel?" selected":""}`} style={{ display:"contents" }} onClick={()=>setSelectedTaskId(task.id)}>
+                        <div key={task.id} className={`task-row${isSel?" selected":""}`} style={{ display:"contents" }} onClick={()=>isMobile ? openEdit(task) : setSelectedTaskId(task.id)}>
                           <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center", background:selBg, transition:"background 0.1s" }}>
                             <div onClick={e=>{e.stopPropagation();updateTask(task.id,{done:!task.done})}}
                               style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
@@ -548,7 +554,7 @@ function App() {
                               />
                             ) : (
                               <span
-                                onClick={() => { if (!task.done) { setInlineEditId(task.id); setInlineEditTitle(task.title); } }}
+                                onClick={e => { if (!isMobile && !task.done) { e.stopPropagation(); setInlineEditId(task.id); setInlineEditTitle(task.title); } }}
                                 style={{ fontSize:14, color:task.done?"#BBBBBA":"#1A1A1A", textDecoration:task.done?"line-through":"none", cursor:task.done?"default":"text", whiteSpace:"nowrap" }}
                               >{task.title}</span>
                             )}
@@ -588,7 +594,7 @@ function App() {
                   {sorted.map(task => {
                     const dl = task.deadline ? deadlineInfo(task.deadline) : null;
                     return (
-                      <div key={task.id} className={`task-row${selectedTaskId===task.id?" selected":""}`} style={{ display:"contents" }} onClick={()=>setSelectedTaskId(task.id)}>
+                      <div key={task.id} className={`task-row${selectedTaskId===task.id?" selected":""}`} style={{ display:"contents" }} onClick={()=>isMobile ? openEdit(task) : setSelectedTaskId(task.id)}>
                         <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center" }}>
                           <div onClick={e=>{e.stopPropagation();updateTask(task.id,{done:!task.done})}}
                             style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
@@ -608,7 +614,7 @@ function App() {
                             />
                           ) : (
                             <span
-                              onClick={() => { if (!task.done) { setInlineEditId(task.id); setInlineEditTitle(task.title); } }}
+                              onClick={e => { if (!isMobile && !task.done) { e.stopPropagation(); setInlineEditId(task.id); setInlineEditTitle(task.title); } }}
                               style={{ fontSize:14, color:task.done?"#BBBBBA":"#1A1A1A", textDecoration:task.done?"line-through":"none", cursor:task.done?"default":"text", whiteSpace:"nowrap" }}
                             >{task.title}</span>
                           )}
