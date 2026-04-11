@@ -167,20 +167,24 @@ function App() {
   const selectedTaskRef             = useRef(null);
   const openEditRef                 = useRef(null);
 
+  const loadData = useCallback(async (isInitial = false) => {
+    try {
+      const [pRows, tRows] = await Promise.all([db.getProjects(), db.getTasks()]);
+      const projs = pRows.map(fromProjRow);
+      setProjects(projs);
+      setTasks(tRows.map(fromRow));
+      if (isInitial && projs.length) setForm(f => ({ ...f, projectId: projs[0].id }));
+      setSyncStatus("ok");
+    } catch(e) { setSyncStatus("error"); }
+  }, []);
+
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    (async () => {
-      try {
-        const [pRows, tRows] = await Promise.all([db.getProjects(), db.getTasks()]);
-        const projs = pRows.map(fromProjRow);
-        setProjects(projs);
-        setTasks(tRows.map(fromRow));
-        if (projs.length) setForm(f => ({ ...f, projectId: projs[0].id }));
-        setSyncStatus("ok");
-      } catch(e) { setSyncStatus("error"); }
-    })();
-  }, []);
+    loadData(true);
+    const interval = setInterval(() => loadData(false), 30000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
