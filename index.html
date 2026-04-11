@@ -312,7 +312,7 @@ function App() {
                 {!activeProject && (
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
                     <div style={{ width:7, height:7, borderRadius:"50%", background:p?.color }} />
-                    <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:"#AAA", letterSpacing:1.5 }}>{p?.label?.toUpperCase()}</span>
+                    <span style={{ fontSize:12, fontFamily:"'DM Mono',monospace", color:"#555", letterSpacing:1.5, fontWeight:700 }}>{p?.label?.toUpperCase()}</span>
                     <div style={{ flex:1, height:1, background:"#E8E8E4" }} />
                     <button onClick={()=>openAdd(pid)} style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:20, lineHeight:1, padding:"0 4px" }}
                       onMouseEnter={e=>e.target.style.color="#888"} onMouseLeave={e=>e.target.style.color="#CCC"}>+</button>
@@ -322,17 +322,19 @@ function App() {
                   {sorted.map(task => {
                     const dl = task.deadline ? deadlineInfo(task.deadline) : null;
                     return (
-                      <div key={task.id} className="task-row" style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"9px 10px", borderRadius:6, background:"transparent", position:"relative" }}>
+                      <div key={task.id} className="task-row" style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 10px", borderRadius:6, background:"transparent", position:"relative" }}>
                         <div onClick={()=>updateTask(task.id,{done:!task.done})}
-                          style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", flexShrink:0, marginTop:2, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
+                          style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", flexShrink:0, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
                           {task.done && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
                         </div>
+                        {/* Task title column */}
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                            <span style={{ fontSize:14, color:task.done?"#BBBBBA":"#1A1A1A", textDecoration:task.done?"line-through":"none" }}>{task.title}</span>
-                            {dl && !task.done && <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:dl.color }}>{dl.label}</span>}
-                          </div>
+                          <span style={{ fontSize:14, color:task.done?"#BBBBBA":"#1A1A1A", textDecoration:task.done?"line-through":"none" }}>{task.title}</span>
                           {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
+                        </div>
+                        {/* Deadline column */}
+                        <div style={{ width:110, flexShrink:0, textAlign:"right" }}>
+                          {dl && !task.done && <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:dl.color, whiteSpace:"nowrap" }}>{dl.label}</span>}
                         </div>
                         <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, flexShrink:0, transition:"opacity 0.1s" }}>
                           <button onClick={()=>openEdit(task)} style={{ background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✎</button>
