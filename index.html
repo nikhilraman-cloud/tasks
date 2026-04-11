@@ -465,15 +465,17 @@ function App() {
                     <div style={{ borderBottom:"1px solid #DDDDD8" }} />
                     {sorted.map(task => {
                       const dl = task.deadline ? deadlineInfo(task.deadline) : null;
+                      const isSel = selectedTaskId === task.id;
+                      const selBg = isSel ? "#EBF0FF" : undefined;
                       return (
-                        <div key={task.id} className={`task-row${selectedTaskId===task.id?" selected":""}`} style={{ display:"contents" }} onClick={()=>setSelectedTaskId(task.id)}>
-                          <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center" }}>
+                        <div key={task.id} className={`task-row${isSel?" selected":""}`} style={{ display:"contents" }} onClick={()=>setSelectedTaskId(task.id)}>
+                          <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center", background:selBg, transition:"background 0.1s" }}>
                             <div onClick={e=>{e.stopPropagation();updateTask(task.id,{done:!task.done})}}
                               style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
                               {task.done && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
                             </div>
                           </div>
-                          <div id={`task-${task.id}`} style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center" }}>
+                          <div id={`task-${task.id}`} style={{ padding:"9px 20px 9px 0", display:"flex", flexDirection:"column", justifyContent:"center", background:selBg, transition:"background 0.1s" }}>
                             {inlineEditId === task.id ? (
                               <input autoFocus value={inlineEditTitle}
                                 onChange={e => setInlineEditTitle(e.target.value)}
@@ -492,10 +494,10 @@ function App() {
                             )}
                             {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
                           </div>
-                          <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"9px 0 9px 12px", display:"flex", alignItems:"center" }}>
+                          <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"9px 0 9px 12px", display:"flex", alignItems:"center", background:selBg, transition:"background 0.1s" }}>
                             {dl && !task.done && <span style={{ fontSize:14, color:"#1A1A1A", whiteSpace:"nowrap" }}>{dl.label}</span>}
                           </div>
-                          <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, transition:"opacity 0.1s", alignItems:"center", paddingLeft:10 }}>
+                          <div className="task-actions" style={{ display:"flex", gap:2, opacity:isSel?1:0, transition:"opacity 0.1s", alignItems:"center", paddingLeft:10, background:selBg }}>
                             <button onClick={()=>openEdit(task)} style={{ background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✎</button>
                             <button onClick={()=>removeTask(task.id)} style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✕</button>
                           </div>
