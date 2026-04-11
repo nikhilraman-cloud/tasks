@@ -200,7 +200,7 @@ function App() {
   // scrollTop/scrollLeft ourselves — the only reliable way to do this on iOS PWA.
   useEffect(() => {
     let startX, startY, axis, scrollEl, startScrollTop, startScrollLeft;
-    const THRESHOLD = 6;
+    const THRESHOLD = 20;
 
     const getScrollParent = (el) => {
       while (el && el !== document.documentElement) {
