@@ -653,8 +653,8 @@ function App() {
                 <input autoFocus value={datePaletteVal}
                   onChange={e => setDatePaletteVal(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === "Enter") { e.preventDefault(); submitDate(); }
-                    if (e.key === "Escape") setShowDatePalette(false);
+                    if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); submitDate(); }
+                    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setShowDatePalette(false); }
                   }}
                   placeholder={hint || "mm/dd/yy — leave empty to clear"}
                   style={{ flex:1, border:"none", outline:"none", fontSize:15, color:isValid?"#1A1A1A":"#CC2200",
