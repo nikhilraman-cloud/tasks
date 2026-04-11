@@ -87,6 +87,19 @@ function deadlineInfo(dateStr) {
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
+// Parse "mm/dd/yy" or "mm/dd/yyyy" → "YYYY-MM-DD", or "" → null (clears deadline)
+function parseDateInput(str) {
+  const s = str.trim();
+  if (!s) return { ok: true, iso: null }; // empty = clear deadline
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!m) return { ok: false };
+  let [, mo, dy, yr] = m;
+  if (yr.length === 2) yr = "20" + yr;
+  const iso = `${yr}-${mo.padStart(2,"0")}-${dy.padStart(2,"0")}`;
+  if (isNaN(new Date(iso + "T00:00:00").getTime())) return { ok: false };
+  return { ok: true, iso };
+}
+
 function App() {
   const [projects, setProjects]     = useState([]);
   const [tasks, setTasks]           = useState([]);
@@ -109,6 +122,8 @@ function App() {
   const [newProjName, setNewProjName] = useState("");
   const [newProjColor, setNewProjColor] = useState("#2563EB");
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showDatePalette, setShowDatePalette] = useState(false);
+  const [datePaletteVal, setDatePaletteVal]   = useState("");
   const initialized                 = useRef(false);
   const flatRef                     = useRef([]);
   const selectedTaskRef             = useRef(null);
@@ -138,20 +153,25 @@ function App() {
         setShowAdd(false); setShowNewProj(false); setShowShortcuts(false);
         setShowCmdK(v => { if (!v) { setCmdKQuery(""); setCmdKIdx(0); } return !v; });
       }
-      // N — new task (only when not typing)
-      if (e.key === "n" && !typing && !e.ctrlKey && !e.metaKey) {
+      // N — new task (only when not typing, no overlay open)
+      if (e.key === "n" && !typing && !e.ctrlKey && !e.metaKey && !showDatePalette) {
         setShowCmdK(false); setShowNewProj(false); setShowShortcuts(false);
         setShowAdd(true); setEditId(null);
         setForm(f => ({ ...f, title:"", notes:"", deadline:"", priority:"medium" }));
       }
-      // P — new project (only when not typing)
-      if (e.key === "p" && !typing && !e.ctrlKey && !e.metaKey) {
+      // P — new project (only when not typing, no overlay open)
+      if (e.key === "p" && !typing && !e.ctrlKey && !e.metaKey && !showDatePalette) {
         setShowCmdK(false); setShowAdd(false); setShowShortcuts(false);
         setNewProjName(""); setNewProjColor("#2563EB");
         setShowNewProj(true);
       }
+      // D — set deadline on selected task
+      if (e.key === "d" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && !showDatePalette) {
+        const curId = selectedTaskRef.current;
+        if (curId) { e.preventDefault(); setDatePaletteVal(""); setShowDatePalette(true); }
+      }
       // ArrowDown — select next task (or first)
-      if (e.key === "ArrowDown" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
+      if (e.key === "ArrowDown" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && !showDatePalette) {
         e.preventDefault();
         const tasks = flatRef.current;
         setSelectedTaskId(cur => {
@@ -161,7 +181,7 @@ function App() {
         });
       }
       // ArrowUp — select previous task
-      if (e.key === "ArrowUp" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
+      if (e.key === "ArrowUp" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && !showDatePalette) {
         e.preventDefault();
         const tasks = flatRef.current;
         setSelectedTaskId(cur => {
@@ -171,7 +191,7 @@ function App() {
         });
       }
       // Enter — open edit for selected task
-      if (e.key === "Enter" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts) {
+      if (e.key === "Enter" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && !showDatePalette) {
         const curId = selectedTaskRef.current;
         if (curId) {
           const task = flatRef.current.find(t => t.id === curId);
@@ -179,18 +199,18 @@ function App() {
         }
       }
       // Tab — toggle open/done (only when not typing)
-      if (e.key === "Tab" && !typing && !e.ctrlKey && !e.metaKey) {
+      if (e.key === "Tab" && !typing && !e.ctrlKey && !e.metaKey && !showDatePalette) {
         e.preventDefault();
         setTab(t => t === "open" ? "done" : "open");
       }
       // ? — shortcuts help
-      if (e.key === "?" && !typing) {
+      if (e.key === "?" && !typing && !showDatePalette) {
         setShowShortcuts(v => !v);
       }
       // Escape — close all overlays
       if (e.key === "Escape") {
         setShowCmdK(false); setShowAdd(false);
-        setShowNewProj(false); setShowShortcuts(false);
+        setShowNewProj(false); setShowShortcuts(false); setShowDatePalette(false);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -561,7 +581,7 @@ function App() {
         const allOpts = [{ id: null, label: "All Projects", color: "#2563EB", parentId: null }, ...orderedProjects];
         const filtered = allOpts.filter(p => p.label.toLowerCase().includes(cmdKQuery.toLowerCase()));
         const safeIdx = Math.min(cmdKIdx, filtered.length - 1);
-        const choose = (id) => { setActive(id); setShowCmdK(false); setSelectedTaskId(null); };
+        const choose = (id) => { setActive(id); setShowCmdK(false); setSelectedTaskId(null); setShowDatePalette(false); };
         const onKeyDown = (e) => {
           if (e.key === "ArrowDown") { e.preventDefault(); setCmdKIdx(i => Math.min(i + 1, filtered.length - 1)); }
           if (e.key === "ArrowUp")   { e.preventDefault(); setCmdKIdx(i => Math.max(i - 1, 0)); }
@@ -600,6 +620,56 @@ function App() {
               </div>
               <div style={{ padding:"8px 16px", borderTop:"1px solid #EEEEE8", display:"flex", gap:16, fontSize:11, color:"#CCC" }}>
                 <span>↑↓ navigate</span><span>↵ select</span><span>ESC close</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Date Palette — D key */}
+      {showDatePalette && (() => {
+        const curId = selectedTaskRef.current;
+        const curTask = flatRef.current.find(t => t.id === curId);
+        const submitDate = () => {
+          const result = parseDateInput(datePaletteVal);
+          if (!result.ok) return; // invalid — do nothing, keep open
+          updateTask(curId, { deadline: result.iso });
+          setShowDatePalette(false);
+        };
+        // Pre-fill hint: current deadline formatted as mm/dd/yy
+        const hint = curTask?.deadline
+          ? (() => { const d = new Date(curTask.deadline + "T00:00:00");
+              return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}/${String(d.getFullYear()).slice(2)}`; })()
+          : "";
+        const isValid = datePaletteVal === "" || parseDateInput(datePaletteVal).ok;
+        return (
+          <div onClick={e => e.target === e.currentTarget && setShowDatePalette(false)}
+            style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:200, paddingTop:120 }}>
+            <div style={{ background:"#FFFFFF", borderRadius:10, width:"100%", maxWidth:360, boxShadow:"0 8px 40px rgba(0,0,0,0.18)", overflow:"hidden" }}>
+              <div style={{ display:"flex", alignItems:"center", padding:"12px 16px", borderBottom:"1px solid #EEEEE8", gap:10 }}>
+                <span style={{ fontSize:13, color:"#AAA" }}>📅</span>
+                <input autoFocus value={datePaletteVal}
+                  onChange={e => setDatePaletteVal(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") { e.preventDefault(); submitDate(); }
+                    if (e.key === "Escape") setShowDatePalette(false);
+                  }}
+                  placeholder={hint || "mm/dd/yy — leave empty to clear"}
+                  style={{ flex:1, border:"none", outline:"none", fontSize:15, color:isValid?"#1A1A1A":"#CC2200",
+                    background:"transparent", fontFamily:"Arial, sans-serif" }}
+                />
+                <span style={{ fontSize:11, color:"#CCC", background:"#F5F5F3", borderRadius:4, padding:"2px 6px" }}>ESC</span>
+              </div>
+              {curTask && (
+                <div style={{ padding:"10px 16px", fontSize:13, color:"#888" }}>
+                  <span style={{ fontWeight:600, color:"#1A1A1A" }}>{curTask.title}</span>
+                  {curTask.deadline && <span style={{ marginLeft:8, color:"#AAA" }}>
+                    · currently {deadlineInfo(curTask.deadline)?.label}
+                  </span>}
+                </div>
+              )}
+              <div style={{ padding:"8px 16px", borderTop:"1px solid #EEEEE8", display:"flex", gap:16, fontSize:11, color:"#CCC" }}>
+                <span>↵ save</span><span>empty = clear deadline</span><span>ESC cancel</span>
               </div>
             </div>
           </div>
@@ -652,6 +722,7 @@ function App() {
               ["Tab",         "Toggle Open / Done"],
               ["?",           "Show this help"],
               ["↓ / ↑",       "Select task"],
+              ["D",           "Set deadline on selected task"],
               ["↵",           "Edit selected task"],
               ["Ctrl ↵",      "Save task / confirm"],
               ["Esc",         "Close any panel"],
