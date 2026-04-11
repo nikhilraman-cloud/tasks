@@ -743,7 +743,8 @@ function App() {
       {showAdd && (
         <div onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}
           style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:100 }}>
-          <div style={{ background:"#FFFFFF", border:"1px solid #DDDDD8", borderRadius:"14px 14px 0 0", padding:"22px 20px 36px", width:"100%", maxWidth:520, boxShadow:"0 -4px 24px rgba(0,0,0,0.08)" }}>
+          <div onKeyDown={e=>{ if(e.key==="Enter"&&e.ctrlKey){ e.preventDefault(); e.stopPropagation(); saveForm(); }}}
+            style={{ background:"#FFFFFF", border:"1px solid #DDDDD8", borderRadius:"14px 14px 0 0", padding:"22px 20px 36px", width:"100%", maxWidth:520, boxShadow:"0 -4px 24px rgba(0,0,0,0.08)" }}>
             <div style={{ fontSize:10, fontFamily:"Arial, sans-serif", color:"#AAA", letterSpacing:2, marginBottom:16 }}>{editId?"EDIT TASK":"NEW TASK"}</div>
             <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
               <input autoFocus value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}
