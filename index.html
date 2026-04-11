@@ -318,6 +318,12 @@ function App() {
                       onMouseEnter={e=>e.target.style.color="#888"} onMouseLeave={e=>e.target.style.color="#CCC"}>+</button>
                   </div>
                 )}
+                <div style={{ display:"flex", alignItems:"center", gap:10, padding:"0 10px 6px" }}>
+                  <div style={{ width:17, flexShrink:0 }} />
+                  <div style={{ flex:1, fontSize:10, fontFamily:"'DM Mono',monospace", color:"#BBB", letterSpacing:1.5 }}>TASK</div>
+                  <div style={{ flexShrink:0, minWidth:90, textAlign:"right", fontSize:10, fontFamily:"'DM Mono',monospace", color:"#BBB", letterSpacing:1.5, borderLeft:"1px dashed #DDDDD8", paddingLeft:12 }}>DEADLINE</div>
+                  <div style={{ width:46, flexShrink:0 }} />
+                </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
                   {sorted.map(task => {
                     const dl = task.deadline ? deadlineInfo(task.deadline) : null;
@@ -333,8 +339,8 @@ function App() {
                           {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
                         </div>
                         {/* Deadline column */}
-                        <div style={{ width:110, flexShrink:0, textAlign:"right" }}>
-                          {dl && !task.done && <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:dl.color, whiteSpace:"nowrap" }}>{dl.label}</span>}
+                        <div style={{ flexShrink:0, minWidth:90, textAlign:"right", borderLeft:"1px dashed #DDDDD8", paddingLeft:12 }}>
+                          {dl && !task.done && <span style={{ fontSize:11, color:dl.color, whiteSpace:"nowrap" }}>{dl.label}</span>}
                         </div>
                         <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, flexShrink:0, transition:"opacity 0.1s" }}>
                           <button onClick={()=>openEdit(task)} style={{ background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✎</button>
