@@ -7,14 +7,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body, #root { height: 100%; background: #F5F5F3; color: #1A1A1A; font-family: 'Futura Std Book', 'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif; -webkit-font-smoothing: antialiased; }
+  html, body, #root { height: 100%; background: #F5F5F3; color: #1A1A1A; font-family: Arial, sans-serif; -webkit-font-smoothing: antialiased; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: #F5F5F3; }
   ::-webkit-scrollbar-thumb { background: #D0D0CC; border-radius: 2px; }
-  input, textarea, select, button { font-family: 'Futura Std Book', 'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif; }
+  input, textarea, select, button { font-family: Arial, sans-serif; }
   input[type=date]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.5; }
   .task-row:hover { background: #ECEAE6 !important; }
   .task-row:hover .task-actions { opacity: 1 !important; }
@@ -97,6 +96,8 @@ function App() {
   const [digestLoading, setDL]      = useState(false);
   const [tab, setTab]               = useState("open");
   const [search, setSearch]         = useState("");
+  const [inlineEditId, setInlineEditId]       = useState(null);
+  const [inlineEditTitle, setInlineEditTitle] = useState("");
   const initialized                 = useRef(false);
 
   useEffect(() => {
@@ -153,6 +154,11 @@ function App() {
       addTask({ id:genId(), ...form, title:form.title.trim(), deadline:form.deadline||null, done:false, createdAt:new Date().toISOString() });
     }
     setShowAdd(false);
+  };
+
+  const saveInlineEdit = (id) => {
+    if (inlineEditTitle.trim()) updateTask(id, { title: inlineEditTitle.trim() });
+    setInlineEditId(null);
   };
 
   const proj = (id) => projects.find(p => p.id === id);
@@ -212,7 +218,7 @@ function App() {
 
   if (syncStatus === "loading") return (
     <div style={{ height:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#F5F5F3" }}>
-      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:"#AAA", letterSpacing:2 }}>LOADING…</div>
+      <div style={{ fontFamily:"Arial, sans-serif", fontSize:13, color:"#AAA", letterSpacing:2 }}>LOADING…</div>
     </div>
   );
 
@@ -222,14 +228,14 @@ function App() {
       {/* Header */}
       <div style={{ borderBottom:"1px solid #DDDDD8", padding:"0 18px", display:"flex", alignItems:"center", justifyContent:"space-between", height:54, flexShrink:0, background:"#FFFFFF", position:"sticky", top:0, zIndex:50, boxShadow:"0 1px 0 #E8E8E4" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-          <span style={{ fontFamily:"'DM Mono',monospace", fontWeight:500, fontSize:15, letterSpacing:2, color:"#1A1A1A", flexShrink:0 }}>TASKS</span>
-          {openCount > 0 && <span style={{ background:"#F0F0EC", borderRadius:20, padding:"2px 8px", fontSize:12, fontFamily:"'DM Mono',monospace", color:"#888", flexShrink:0 }}>{openCount}</span>}
-          {urgentCount > 0 && <span style={{ background:"#FFF0EE", border:"1px solid #FFCCC8", borderRadius:20, padding:"2px 8px", fontSize:12, fontFamily:"'DM Mono',monospace", color:"#CC2200", flexShrink:0 }}>⚠ {urgentCount}</span>}
-          <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:syncColor[syncStatus], flexShrink:0 }}>{syncLabel[syncStatus]}</span>
+          <span style={{ fontFamily:"Arial, sans-serif", fontWeight:500, fontSize:15, letterSpacing:2, color:"#1A1A1A", flexShrink:0 }}>TASKS</span>
+          {openCount > 0 && <span style={{ background:"#F0F0EC", borderRadius:20, padding:"2px 8px", fontSize:12, fontFamily:"Arial, sans-serif", color:"#888", flexShrink:0 }}>{openCount}</span>}
+          {urgentCount > 0 && <span style={{ background:"#FFF0EE", border:"1px solid #FFCCC8", borderRadius:20, padding:"2px 8px", fontSize:12, fontFamily:"Arial, sans-serif", color:"#CC2200", flexShrink:0 }}>⚠ {urgentCount}</span>}
+          <span style={{ fontSize:11, fontFamily:"Arial, sans-serif", color:syncColor[syncStatus], flexShrink:0 }}>{syncLabel[syncStatus]}</span>
         </div>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
           <button onClick={runDigest} disabled={digestLoading}
-            style={{ background:"#F0F0EC", border:"1px solid #DDDDD8", borderRadius:6, padding:"6px 12px", color:"#555", fontSize:12, cursor:"pointer", fontFamily:"'DM Mono',monospace", letterSpacing:1 }}>
+            style={{ background:"#F0F0EC", border:"1px solid #DDDDD8", borderRadius:6, padding:"6px 12px", color:"#555", fontSize:12, cursor:"pointer", fontFamily:"Arial, sans-serif", letterSpacing:1 }}>
             {digestLoading ? "···" : "⚡ DIGEST"}
           </button>
           <button onClick={() => openAdd()}
@@ -243,12 +249,12 @@ function App() {
 
         {/* Sidebar */}
         <div className="sidebar" style={{ width:190, borderRight:"1px solid #DDDDD8", padding:"14px 0", flexShrink:0, overflowY:"auto", background:"#FAFAF8" }}>
-          <div style={{ padding:"0 14px 8px", fontSize:10, fontFamily:"'DM Mono',monospace", color:"#AAA", letterSpacing:2 }}>PROJECTS</div>
+          <div style={{ padding:"0 14px 8px", fontSize:10, fontFamily:"Arial, sans-serif", color:"#AAA", letterSpacing:2 }}>PROJECTS</div>
 
           <div className="proj-tab" onClick={() => setActive(null)}
             style={{ padding:"8px 14px", background:activeProject===null?"#ECEAE6":"transparent", borderLeft:`2px solid ${activeProject===null?"#2563EB":"transparent"}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <span style={{ fontSize:14, color:activeProject===null?"#1A1A1A":"#666", fontWeight:activeProject===null?500:400 }}>All</span>
-            {tasks.filter(t=>!t.done).length > 0 && <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:"#AAA" }}>{tasks.filter(t=>!t.done).length}</span>}
+            {tasks.filter(t=>!t.done).length > 0 && <span style={{ fontSize:11, fontFamily:"Arial, sans-serif", color:"#AAA" }}>{tasks.filter(t=>!t.done).length}</span>}
           </div>
 
           {orderedProjects.map(p => {
@@ -263,7 +269,7 @@ function App() {
                   <div style={{ width:isSub?5:6, height:isSub?5:6, borderRadius:"50%", background:p.color, flexShrink:0 }} />
                   <span style={{ fontSize:isSub?13:14, color:active?"#1A1A1A":(isSub?"#777":"#444"), fontWeight:active?500:400, lineHeight:1.3 }}>{p.label}</span>
                 </div>
-                {count > 0 && <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:"#AAA" }}>{count}</span>}
+                {count > 0 && <span style={{ fontSize:11, fontFamily:"Arial, sans-serif", color:"#AAA" }}>{count}</span>}
               </div>
             );
           })}
@@ -272,7 +278,7 @@ function App() {
           <div style={{ padding:"10px 14px 0", display:"flex", gap:4 }}>
             {["open","done"].map(t => (
               <button key={t} onClick={() => setTab(t)}
-                style={{ flex:1, background:tab===t?"#ECEAE6":"transparent", border:"none", borderRadius:5, padding:"6px 0", fontSize:11, fontFamily:"'DM Mono',monospace", color:tab===t?"#1A1A1A":"#AAA", cursor:"pointer", letterSpacing:1 }}>
+                style={{ flex:1, background:tab===t?"#ECEAE6":"transparent", border:"none", borderRadius:5, padding:"6px 0", fontSize:11, fontFamily:"Arial, sans-serif", color:tab===t?"#1A1A1A":"#AAA", cursor:"pointer", letterSpacing:1 }}>
                 {t.toUpperCase()}
               </button>
             ))}
@@ -286,14 +292,14 @@ function App() {
 
           {digest && (
             <div style={{ background:"#EEF4FF", border:"1px solid #C0D4FF", borderRadius:8, padding:"14px 16px", marginBottom:18, position:"relative" }}>
-              <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:"#2563EB", letterSpacing:2, marginBottom:8 }}>⚡ DAILY DIGEST</div>
+              <div style={{ fontSize:10, fontFamily:"Arial, sans-serif", color:"#2563EB", letterSpacing:2, marginBottom:8 }}>⚡ DAILY DIGEST</div>
               <div style={{ fontSize:14, color:"#334", lineHeight:1.75, whiteSpace:"pre-wrap" }}>{digest}</div>
               <button onClick={()=>setDigest(null)} style={{ position:"absolute", top:10, right:12, background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:20 }}>×</button>
             </div>
           )}
 
           {Object.keys(grouped).length === 0 && (
-            <div style={{ textAlign:"center", paddingTop:60, color:"#CCC", fontFamily:"'DM Mono',monospace", fontSize:12, letterSpacing:2 }}>
+            <div style={{ textAlign:"center", paddingTop:60, color:"#CCC", fontFamily:"Arial, sans-serif", fontSize:12, letterSpacing:2 }}>
               {tab==="done" ? "NO COMPLETED TASKS" : "NO OPEN TASKS"}
               {tab==="open" && <div style={{ marginTop:12 }}><button onClick={()=>openAdd()} style={{ background:"none", border:"1px dashed #DDD", borderRadius:6, padding:"8px 16px", color:"#AAA", fontSize:13, cursor:"pointer" }}>+ Add your first task</button></div>}
             </div>
@@ -312,7 +318,7 @@ function App() {
                 {!activeProject && (
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
                     <div style={{ width:7, height:7, borderRadius:"50%", background:p?.color }} />
-                    <span style={{ fontSize:12, fontFamily:"'DM Mono',monospace", color:"#555", letterSpacing:1.5, fontWeight:700 }}>{p?.label?.toUpperCase()}</span>
+                    <span style={{ fontSize:12, fontFamily:"Arial, sans-serif", color:"#555", letterSpacing:1.5, fontWeight:700 }}>{p?.label?.toUpperCase()}</span>
                     <div style={{ flex:1, height:1, background:"#E8E8E4" }} />
                     <button onClick={()=>openAdd(pid)} style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:20, lineHeight:1, padding:"0 4px" }}
                       onMouseEnter={e=>e.target.style.color="#888"} onMouseLeave={e=>e.target.style.color="#CCC"}>+</button>
@@ -320,8 +326,8 @@ function App() {
                 )}
                 <div style={{ display:"flex", alignItems:"center", gap:10, padding:"0 10px 6px" }}>
                   <div style={{ width:17, flexShrink:0 }} />
-                  <div style={{ flex:1, fontSize:10, fontFamily:"'DM Mono',monospace", color:"#BBB", letterSpacing:1.5 }}>TASK</div>
-                  <div style={{ flexShrink:0, minWidth:90, textAlign:"right", fontSize:10, fontFamily:"'DM Mono',monospace", color:"#BBB", letterSpacing:1.5, borderLeft:"1px dashed #DDDDD8", paddingLeft:12 }}>DEADLINE</div>
+                  <div style={{ flex:1, fontSize:10, fontFamily:"Arial, sans-serif", color:"#BBB", letterSpacing:1.5 }}>TASK</div>
+                  <div style={{ flexShrink:0, minWidth:90, textAlign:"right", fontSize:10, fontFamily:"Arial, sans-serif", color:"#BBB", letterSpacing:1.5, borderLeft:"1px dashed #DDDDD8", paddingLeft:12 }}>DEADLINE</div>
                   <div style={{ width:46, flexShrink:0 }} />
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
@@ -335,7 +341,22 @@ function App() {
                         </div>
                         {/* Task title column */}
                         <div style={{ flex:1, minWidth:0 }}>
-                          <span style={{ fontSize:14, color:task.done?"#BBBBBA":"#1A1A1A", textDecoration:task.done?"line-through":"none" }}>{task.title}</span>
+                          {inlineEditId === task.id ? (
+                            <input autoFocus value={inlineEditTitle}
+                              onChange={e => setInlineEditTitle(e.target.value)}
+                              onBlur={() => saveInlineEdit(task.id)}
+                              onKeyDown={e => {
+                                if (e.key === "Enter") { e.preventDefault(); saveInlineEdit(task.id); }
+                                if (e.key === "Escape") setInlineEditId(null);
+                              }}
+                              style={{ fontSize:14, color:"#1A1A1A", background:"transparent", border:"none", borderBottom:"1px solid #2563EB", outline:"none", width:"100%", padding:0, fontFamily:"Arial, sans-serif" }}
+                            />
+                          ) : (
+                            <span
+                              onClick={() => { if (!task.done) { setInlineEditId(task.id); setInlineEditTitle(task.title); } }}
+                              style={{ fontSize:14, color:task.done?"#BBBBBA":"#1A1A1A", textDecoration:task.done?"line-through":"none", cursor:task.done?"default":"text" }}
+                            >{task.title}</span>
+                          )}
                           {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
                         </div>
                         {/* Deadline column */}
@@ -368,7 +389,7 @@ function App() {
         <div onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}
           style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:100 }}>
           <div style={{ background:"#FFFFFF", border:"1px solid #DDDDD8", borderRadius:"14px 14px 0 0", padding:"22px 20px 36px", width:"100%", maxWidth:520, boxShadow:"0 -4px 24px rgba(0,0,0,0.08)" }}>
-            <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:"#AAA", letterSpacing:2, marginBottom:16 }}>{editId?"EDIT TASK":"NEW TASK"}</div>
+            <div style={{ fontSize:10, fontFamily:"Arial, sans-serif", color:"#AAA", letterSpacing:2, marginBottom:16 }}>{editId?"EDIT TASK":"NEW TASK"}</div>
             <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
               <input autoFocus value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}
                 onKeyDown={e=>e.key==="Enter"&&saveForm()} placeholder="Task title *"
@@ -377,14 +398,14 @@ function App() {
                 style={{ background:"#F5F5F3", border:"1px solid #DDDDD8", borderRadius:6, padding:"11px 12px", color:"#1A1A1A", fontSize:14, resize:"none" }} />
               <div style={{ display:"flex", gap:8 }}>
                 <div style={{ flex:3 }}>
-                  <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:"#AAA", letterSpacing:1.5, marginBottom:5 }}>PROJECT</div>
+                  <div style={{ fontSize:10, fontFamily:"Arial, sans-serif", color:"#AAA", letterSpacing:1.5, marginBottom:5 }}>PROJECT</div>
                   <select value={form.projectId} onChange={e=>setForm(f=>({...f,projectId:e.target.value}))}
                     style={{ width:"100%", background:"#F5F5F3", border:"1px solid #DDDDD8", borderRadius:6, padding:"10px 9px", color:"#1A1A1A", fontSize:14 }}>
                     {orderedProjects.map(p=><option key={p.id} value={p.id}>{p.parentId?`  ↳ ${p.label}`:p.label}</option>)}
                   </select>
                 </div>
                 <div style={{ flex:2 }}>
-                  <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:"#AAA", letterSpacing:1.5, marginBottom:5 }}>PRIORITY</div>
+                  <div style={{ fontSize:10, fontFamily:"Arial, sans-serif", color:"#AAA", letterSpacing:1.5, marginBottom:5 }}>PRIORITY</div>
                   <select value={form.priority} onChange={e=>setForm(f=>({...f,priority:e.target.value}))}
                     style={{ width:"100%", background:"#F5F5F3", border:"1px solid #DDDDD8", borderRadius:6, padding:"10px 9px", color:"#1A1A1A", fontSize:14 }}>
                     <option value="high">High</option>
@@ -394,7 +415,7 @@ function App() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:"#AAA", letterSpacing:1.5, marginBottom:5 }}>DEADLINE (optional)</div>
+                <div style={{ fontSize:10, fontFamily:"Arial, sans-serif", color:"#AAA", letterSpacing:1.5, marginBottom:5 }}>DEADLINE (optional)</div>
                 <input type="date" value={form.deadline} onChange={e=>setForm(f=>({...f,deadline:e.target.value}))}
                   style={{ background:"#F5F5F3", border:"1px solid #DDDDD8", borderRadius:6, padding:"10px 12px", color:form.deadline?"#1A1A1A":"#AAA", fontSize:14, width:"100%" }} />
               </div>
