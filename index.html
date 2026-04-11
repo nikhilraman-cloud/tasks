@@ -325,16 +325,16 @@ function App() {
                       onMouseEnter={e=>e.target.style.color="#888"} onMouseLeave={e=>e.target.style.color="#CCC"}>+</button>
                   </div>
                 )}
-                <div style={{ display:"grid", gridTemplateColumns:"17px auto auto 1fr auto", columnGap:10, rowGap:0 }}>
-                  <div />
-                  <div style={{ padding:"0 0 6px", fontSize:10, color:"#BBB", letterSpacing:1.5 }}>TASK</div>
-                  <div style={{ borderLeft:"1px dotted #DDDDD8", padding:"0 0 6px 12px", fontSize:10, color:"#BBB", letterSpacing:1.5 }}>DEADLINE</div>
-                  <div /><div />
+                <div style={{ display:"grid", gridTemplateColumns:activeProject ? "27px auto auto 1fr" : "27px 1fr auto auto", columnGap:0, rowGap:0 }}>
+                  <div style={{ borderBottom:"1px solid #DDDDD8", padding:"0 0 6px" }} />
+                  <div style={{ padding:"0 0 6px", fontSize:14, color:"#1A1A1A", borderBottom:"1px solid #DDDDD8" }}>Task</div>
+                  <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"0 0 6px 12px", fontSize:14, color:"#1A1A1A", borderBottom:"1px solid #DDDDD8" }}>Deadline</div>
+                  <div style={{ borderBottom:"1px solid #DDDDD8" }} />
                   {sorted.map(task => {
                     const dl = task.deadline ? deadlineInfo(task.deadline) : null;
                     return (
                       <div key={task.id} className="task-row" style={{ display:"contents" }}>
-                        <div style={{ padding:"9px 0", display:"flex", alignItems:"center" }}>
+                        <div style={{ padding:"9px 10px 9px 0", display:"flex", alignItems:"center" }}>
                           <div onClick={()=>updateTask(task.id,{done:!task.done})}
                             style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${task.done?"#2563EB":"#CCCCCA"}`, background:task.done?"#2563EB":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.1s" }}>
                             {task.done && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
@@ -359,11 +359,10 @@ function App() {
                           )}
                           {task.notes && <div style={{ fontSize:12, color:"#999", marginTop:2, lineHeight:1.5 }}>{task.notes}</div>}
                         </div>
-                        <div style={{ borderLeft:"1px dotted #DDDDD8", padding:"9px 0 9px 12px", display:"flex", alignItems:"center" }}>
+                        <div style={{ borderLeft:"1px dashed #DDDDD8", padding:"9px 0 9px 12px", display:"flex", alignItems:"center" }}>
                           {dl && !task.done && <span style={{ fontSize:14, color:dl.color, whiteSpace:"nowrap" }}>{dl.label}</span>}
                         </div>
-                        <div />
-                        <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, transition:"opacity 0.1s", alignItems:"center" }}>
+                        <div className="task-actions" style={{ display:"flex", gap:2, opacity:0, transition:"opacity 0.1s", alignItems:"center", paddingLeft:10 }}>
                           <button onClick={()=>openEdit(task)} style={{ background:"none", border:"none", color:"#AAA", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✎</button>
                           <button onClick={()=>removeTask(task.id)} style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:13, padding:"2px 5px" }}>✕</button>
                         </div>
