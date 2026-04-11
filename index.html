@@ -51,9 +51,6 @@
     /* Prevent scroll chaining (rubber-band pulling outer viewport) */
     .main-pad { overscroll-behavior: contain; }
     .sidebar  { overscroll-behavior: contain; }
-    /* Lock scroll axis — prevent diagonal/cross-axis drift */
-    .main-pad { touch-action: pan-y; }
-    .sidebar  { touch-action: pan-y; }
     /* Always show edit/delete buttons on touch devices */
     .task-actions { opacity: 1 !important; }
   }
@@ -198,6 +195,50 @@ function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // Axis-lock: once a touch gesture commits to one direction, block the other axis.
+  // Uses manual scroll management so we can call preventDefault() and drive
+  // scrollTop/scrollLeft ourselves — the only reliable way to do this on iOS PWA.
+  useEffect(() => {
+    let startX, startY, axis, scrollEl, startScrollTop, startScrollLeft;
+    const THRESHOLD = 6;
+
+    const getScrollParent = (el) => {
+      while (el && el !== document.documentElement) {
+        const s = window.getComputedStyle(el);
+        if (['auto','scroll'].includes(s.overflowY) || ['auto','scroll'].includes(s.overflowX)) return el;
+        el = el.parentElement;
+      }
+      return document.documentElement;
+    };
+
+    const onStart = (e) => {
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY; axis = null;
+      scrollEl = getScrollParent(e.target);
+      startScrollTop  = scrollEl.scrollTop;
+      startScrollLeft = scrollEl.scrollLeft;
+    };
+
+    const onMove = (e) => {
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (!axis) {
+        if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
+        axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+      }
+      e.preventDefault();
+      if (axis === 'y') scrollEl.scrollTop  = startScrollTop  - dy;
+      else              scrollEl.scrollLeft = startScrollLeft - dx;
+    };
+
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchmove',  onMove,  { passive: false });
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchmove',  onMove);
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e) => {
