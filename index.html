@@ -168,6 +168,7 @@ function App() {
   const flatRef                     = useRef([]);
   const selectedTaskRef             = useRef(null);
   const openEditRef                 = useRef(null);
+  const removeTaskRef               = useRef(null);
   const sidebarOpenRef              = useRef(false);
   useEffect(() => { sidebarOpenRef.current = sidebarOpen; }, [sidebarOpen]);
 
@@ -331,6 +332,18 @@ function App() {
         const curId = selectedTaskRef.current;
         if (curId) { e.preventDefault(); setDatePaletteVal(""); setShowDatePalette(true); }
       }
+      // Delete / Backspace — delete selected task
+      if ((e.key === "Delete" || e.key === "Backspace") && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && !showDatePalette) {
+        const curId = selectedTaskRef.current;
+        if (curId) {
+          e.preventDefault();
+          const list = flatRef.current;
+          const idx = list.findIndex(t => t.id === curId);
+          const nextSel = list[idx + 1]?.id || list[idx - 1]?.id || null;
+          setSelectedTaskId(nextSel);
+          removeTaskRef.current(curId);
+        }
+      }
       // ArrowDown — select next task (or first)
       if (e.key === "ArrowDown" && !typing && !showAdd && !showNewProj && !showCmdK && !showShortcuts && !showDatePalette) {
         e.preventDefault();
@@ -397,6 +410,7 @@ function App() {
     try { flash("saving"); await db.deleteTask(id); flash("ok"); }
     catch { flash("error"); }
   };
+  removeTaskRef.current = removeTask;
 
   const openAdd = (projectId) => {
     const pid = projectId || activeProject || (projects[0]?.id ?? "");
@@ -919,6 +933,7 @@ function App() {
               ["?",           "Show this help"],
               ["↓ / ↑",       "Select task"],
               ["D",           "Set deadline on selected task"],
+              ["Delete",      "Delete selected task"],
               ["↵",           "Edit selected task"],
               ["Ctrl ↵",      "Save task / confirm"],
               ["Esc",         "Close any panel"],
