@@ -170,7 +170,11 @@ function App() {
   const openEditRef                 = useRef(null);
   const removeTaskRef               = useRef(null);
   const sidebarOpenRef              = useRef(false);
+  const undoStack                   = useRef([]);
+  const redoStack                   = useRef([]);
+  const tasksRef                    = useRef([]);
   useEffect(() => { sidebarOpenRef.current = sidebarOpen; }, [sidebarOpen]);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
 
   const loadData = useCallback(async (isInitial = false) => {
     try {
@@ -381,6 +385,14 @@ function App() {
       if (e.key === "?" && !typing && !showDatePalette) {
         setShowShortcuts(v => !v);
       }
+      // Ctrl+Z — undo
+      if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        e.preventDefault(); performUndo();
+      }
+      // Ctrl+Shift+Z / Ctrl+Y — redo
+      if ((e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) || (e.key === "y" && (e.ctrlKey || e.metaKey))) {
+        e.preventDefault(); performRedo();
+      }
       // Escape — close all overlays
       if (e.key === "Escape") {
         setShowCmdK(false); setShowAdd(false);
@@ -393,22 +405,64 @@ function App() {
 
   const flash = (s) => setSyncStatus(s);
 
-  const addTask = async (task) => {
+  // --- Low-level DB ops (no undo tracking) ---
+  const _addTask = async (task) => {
     setTasks(prev => [...prev, task]);
     try { flash("saving"); await db.insertTask(task); flash("ok"); }
     catch { flash("error"); }
   };
-
-  const updateTask = async (id, fields) => {
+  const _updateTask = async (id, fields) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...fields } : t));
     try { flash("saving"); await db.updateTask(id, fields); flash("ok"); }
     catch { flash("error"); }
   };
-
-  const removeTask = async (id) => {
+  const _removeTask = async (id) => {
     setTasks(prev => prev.filter(t => t.id !== id));
     try { flash("saving"); await db.deleteTask(id); flash("ok"); }
     catch { flash("error"); }
+  };
+
+  // --- Undo/redo helpers ---
+  const pushUndo = (action) => { undoStack.current.push(action); redoStack.current = []; };
+
+  const performUndo = () => {
+    const action = undoStack.current.pop();
+    if (!action) return;
+    redoStack.current.push(action);
+    if (action.type === "add") _removeTask(action.task.id);
+    else if (action.type === "delete") _addTask(action.task);
+    else if (action.type === "update") _updateTask(action.id, action.oldFields);
+  };
+
+  const performRedo = () => {
+    const action = redoStack.current.pop();
+    if (!action) return;
+    undoStack.current.push(action);
+    if (action.type === "add") _addTask(action.task);
+    else if (action.type === "delete") _removeTask(action.task.id);
+    else if (action.type === "update") _updateTask(action.id, action.newFields);
+  };
+
+  // --- Public mutation functions (with undo tracking) ---
+  const addTask = async (task) => {
+    pushUndo({ type: "add", task });
+    await _addTask(task);
+  };
+
+  const updateTask = async (id, fields) => {
+    const old = tasksRef.current.find(t => t.id === id);
+    if (old) {
+      const oldFields = {};
+      for (const k of Object.keys(fields)) oldFields[k] = old[k] ?? null;
+      pushUndo({ type: "update", id, oldFields, newFields: fields });
+    }
+    await _updateTask(id, fields);
+  };
+
+  const removeTask = async (id) => {
+    const old = tasksRef.current.find(t => t.id === id);
+    if (old) pushUndo({ type: "delete", task: { ...old } });
+    await _removeTask(id);
   };
   removeTaskRef.current = removeTask;
 
@@ -936,6 +990,8 @@ function App() {
               ["Delete",      "Delete selected task"],
               ["↵",           "Edit selected task"],
               ["Ctrl ↵",      "Save task / confirm"],
+              ["Ctrl Z",      "Undo"],
+              ["Ctrl ⇧ Z",   "Redo"],
               ["Esc",         "Close any panel"],
             ].map(([key, label]) => (
               <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:"1px solid #F0F0EC" }}>
