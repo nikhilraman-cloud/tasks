@@ -317,7 +317,7 @@ function App() {
         e.preventDefault();
         setShowCmdK(false); setShowNewProj(false); setShowShortcuts(false);
         setShowAdd(true); setEditId(null);
-        setForm(f => ({ ...f, title:"", notes:"", deadline:"", priority:"medium" }));
+        setForm(f => ({ ...f, title:"", notes:"", deadline:"", priority:"medium", projectId: activeProject || f.projectId }));
       }
       // P — new project (only when not typing, no overlay open)
       if (e.key === "p" && !typing && !e.ctrlKey && !e.metaKey && !showDatePalette) {
